@@ -1,0 +1,41 @@
+@startuml
+(*)  --> "check request"
+If "kdtId, adminId, source" then
+--> [yes] "buildListRequest"
+
+note left
+a.支持打包一口价
+b.支持第二件半价
+c.支持加价购
+d.满减送 -> pc收银进行js版本控制
+        -> 其它端是否支持满减送取决于apollo配置
+end note
+
+else
+--> [no] (*)
+Endif
+
+buildListRequest --> buildCartContext
+note left
+a.封装条目业务参数
+b.封装优惠计算业务对象
+c.购物车基础信息
+end note
+
+buildCartContext --> (*)
+
+@enduml
+
+
+/'
+@startuml
+(*)  --> "check request"
+If "input is verbose" then
+--> [Yes] "turn on verbosity"
+--> "run command"
+else
+--> "run command"
+Endif
+-->(*)
+@enduml
+'/

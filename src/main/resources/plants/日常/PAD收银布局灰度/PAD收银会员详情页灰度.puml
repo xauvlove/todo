@@ -1,0 +1,33 @@
+@startuml
+skinparam sequenceArrowThickness 1
+skinparam roundcorner 20
+skinparam maxmessagesize 500
+/'skinparam sequenceParticipant underline'/
+
+actor pad as pad
+
+participant "misc" as misc
+participant "scrm" as scrm
+participant "cart" as cart
+participant "core" as core
+
+pad -> misc : 1根据kdtId查询是否灰度
+activate misc
+misc -> misc : 2灰度规则
+activate misc
+misc --> pad : 3返回结果
+
+pad -> scrm : 4登录会员
+activate scrm
+return 4.1返回
+
+pad -> cart : 5加购流程
+activate cart
+return 5.1返回
+
+pad -> core : 6开单支付
+activate core
+return 6.1返回
+
+
+@enduml

@@ -1,0 +1,35 @@
+@startuml
+
+note
+    当活动类型为：
+    打包一口价，集点卡，加价购，限时折扣，
+    自定义会员价，赠品，满减送
+end note
+
+start
+
+if (营销活动不存在)then(yes)
+    : 重新执行创建逻辑;
+    end
+else(no)
+    : 查询营销活动基本信息，BaseActivity;
+    : 更新活动开始结束时间;
+    : 更新活动适用商品范围;
+    : 更新活动状态;
+    note right
+        这里状态全部更新为 NORMAL，正常开启
+    end note
+    : DB删除关联商品表活动记录;
+    note right
+        直接删除表记录;
+    end note
+    : DB更新店铺关联表;
+    : 重新插入 '商品关联表' 和 '店铺关联表';
+    note right
+        复用新增活动逻辑
+    end note
+endif
+
+
+end
+@enduml

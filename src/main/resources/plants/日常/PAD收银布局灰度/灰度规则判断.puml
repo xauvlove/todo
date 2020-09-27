@@ -1,0 +1,13 @@
+@startuml
+start
+: 读取 apollo 允许通过的模值,记 passThreshold;
+: 对本次请求接口的 kdtId 对 100 取模, 记 remainder;
+if(remainder <= passThreshold)then(yes)
+    : true;
+
+else(no)
+    : false;
+endif
+: return;
+end
+@enduml
