@@ -18,7 +18,7 @@ partition prepareData {
             积分抵现
             优惠券/码
         end note
-        partition second-Phrase {
+        partition second-phrase {
          : 准备第二梯队数据;
                 note left
                     增加组合套餐数据获取
