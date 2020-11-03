@@ -1,0 +1,35 @@
+@startuml
+actor nsq as nsq
+
+participant "retail-sales" as sales
+participant "tsp all" as all
+participant "tsp single" as sin
+participant "salesman_reward" as reward
+
+sales -> reward : 1统计20100条数据
+note left
+    select count(*) from salesman_rank_log where finish_amount > 2000;
+    select * from salesman_rank_log where finish_amount > 2000 order by finish_amount desc achieve_goal_time asc limit 1, 100
+    select * from salesman_rank_log where finish_amount > 2000 order by achieve_goal_time asc limit 20000
+end note
+activate reward
+return 2返回数据
+
+sales -> all : 3异步调用发放奖励方法
+activate all
+
+all -> all : 4循环调用资产接口，发放奖励
+all -> reward : 4.1成功则写表 state = 9 失败则写表 state = 1
+activate reward
+return 4.2返回
+
+all -> sin : 5如果失败，生成 tsp 任务，再次调用资产发放奖励
+activate sin
+sin -> reward : 5.1成功则写表 state = 9 失败则写表 state = 1 retry + 1
+activate reward
+return 5.2返回
+
+sin -> sin : 5.3 再次失败，检查是否 retry < 10,再次生成 tsp 任务
+activate sin
+
+@enduml

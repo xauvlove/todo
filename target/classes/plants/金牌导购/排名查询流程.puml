@@ -1,0 +1,39 @@
+@startuml
+skinparam sequenceArrowThickness 1
+skinparam roundcorner 20
+skinparam maxmessagesize 500
+/'skinparam sequenceParticipant underline'/
+
+actor user as u
+
+
+participant "retail-sales" as sales
+participant "kv" as kv
+participant "salesman_rank_log" as t1
+participant "salesman_achievement_details_log" as t2
+
+u -> sales : 1请求查看排名
+
+sales -> kv :2查询
+note left
+ 如果 kv 存在该 销售员
+ 直接返回排名
+ 如果不存在 返回排名 100+
+end note
+return
+sales --> u
+
+
+u -> sales : 3有新订单支付成功
+sales -> kv : 4查询
+note left
+    查询最后一名销售员业绩
+    并与该销售员进行比较
+    如果该销售员大于最后一名 DB冲排序
+    如果小于 kv 不变
+end note
+return
+sales --> u
+
+
+@enduml
