@@ -1,0 +1,40 @@
+@startuml
+start
+ : 读 kv;
+ if(kv不存在)then(yes)
+    : 读 DB;
+    : 读到数据List<Data>;
+    if(data.size>100)then(yes)
+        : tail = data[99];
+        : 查询与 tail 销售额相同的导购;
+             note left
+                 要分页吗？
+             end note
+        : 并入 data;
+    else(no)
+ endif
+    : 查询 UserModelInfo(分页);
+    : 填充基本信息;
+    : 计算排名;
+    : 计算预测奖金;
+    : 存入 kv;
+ else(no)
+ endif
+    if(salesman_id in data[])then(yes)
+        note left
+            如果导购在排名前100列表
+        end note
+        : 从列表直接拿数据返回;
+        end
+    else(no)
+        : rank 表查询导购信息 bo;
+        : 转换业务对象BO;
+        : 将 bo 加入 data[];
+        : 计算排名;
+        : 从 data[] 中丢弃 100+ 导购;
+        : 计算预测奖金;
+        : 计算 bo 预测奖金，排名，与 tail 的销售差距;
+        : 组装 response 对象;
+    endif
+end
+@enduml

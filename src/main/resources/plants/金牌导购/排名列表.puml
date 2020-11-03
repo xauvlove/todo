@@ -1,0 +1,33 @@
+@startuml
+skinparam sequenceArrowThickness 1
+skinparam roundcorner 20
+skinparam maxmessagesize 500
+/'skinparam sequenceParticipant underline'/
+
+actor user as u
+
+
+participant "retail-sales" as sales
+participant "kv" as kv
+participant "salesman_rank_log" as t1
+
+u -> sales : 1请求查看排名
+activate sales
+
+sales -> sales : 2校验商家是否在白名单
+
+sales -> kv :3优先查询
+activate kv
+note left
+ kv 存储了当前前 100 名的销售员
+ 但 kv 列表不止 100 个
+ kv 过期时间为 3分钟
+end note
+return
+
+sales -> t1 : 4查询[未命中]
+activate t1
+return 5返回
+return 返回
+
+@enduml

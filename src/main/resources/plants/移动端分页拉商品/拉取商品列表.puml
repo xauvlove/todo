@@ -1,0 +1,15 @@
+@startuml
+start
+: 接收 activityId, deviceId, lastPullTime, pageNo, total;
+: 根据入参获取 kv 数据;
+note left
+    pageSize = 1000
+end note
+if (pageNo = 最后一页) then(yes)
+    note left
+        根据入参 total 来确定是否是最后一页
+    end note
+    : 删除所有相关 kv;
+endif
+end
+@enduml

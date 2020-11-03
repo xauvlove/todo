@@ -1,0 +1,33 @@
+@startuml
+start
+ : 读 kv;
+ if(kv不存在)then(yes)
+    : 读 DB;
+    : 读到数据List<Data>;
+    if(data.size>100)then(yes)
+        : tail = data[99];
+        : 查询与 tail 销售额相同的导购;
+             note left
+                 要分页吗？
+             end note
+        : 并入 data;
+    else(no)
+ endif
+    : 查询 UserModelInfo(分页);
+    : 填充基本信息;
+    : 计算排名;
+    : 计算预测奖金;
+    : 存入 kv;
+ else(no)
+ endif
+   : 取 pageNo;
+   if(pageNo>totalPage)then(true)
+        : return [];
+   else(no)
+        : return data[pageNo][pageSize][total];
+        note right
+            返回的数据是指定页码的
+        end note
+   endif
+end
+@enduml

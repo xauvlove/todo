@@ -1,0 +1,30 @@
+@startuml
+start
+
+if(tryTime > 10) then(yes)
+    : log.error, 丢弃;
+    end
+else
+    : 加分布式锁 bond;
+    if(bond success)then(yes)
+        partition occupy {
+            : DB 聚合查询已占坑人数 (paidAmount>2000 and achieve_goal_time > 0);
+            if(如果人数 count > 20000)then(yes)
+                : count 写回 redis;
+                end;
+            else(no)
+                : setAchieveGoalTime(now());
+                : update DB;
+                : 写回 redis;
+            endif
+            : 释放锁;
+        }
+    else(No)
+        : 释放锁;
+        : 再次投递消息 tryTime + 1;
+        end
+    endif
+endif
+
+end
+@enduml

@@ -1,0 +1,32 @@
+@startuml
+skinparam sequenceArrowThickness 1
+skinparam roundcorner 20
+skinparam maxmessagesize 500
+/'skinparam sequenceParticipant underline'/
+
+actor user as u
+
+
+participant "retail-sales" as sales
+participant "kv" as kv
+
+u -> sales : 1请求查看排名
+activate sales
+
+sales -> sales : 2校验商家是否在白名单
+
+sales -> kv :3查询
+activate kv
+note left
+ kv 存储了当前前 100 名的销售员
+ 但 kv 列表不止 100 个
+ 如果 kv 存在该 销售员
+ 直接返回排名
+ 如果不存在 返回排名 100+
+ kv 过期时间为 3分钟
+end note
+return
+return
+
+
+@enduml

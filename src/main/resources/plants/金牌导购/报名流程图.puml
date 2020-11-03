@@ -1,0 +1,84 @@
+@startuml
+skinparam sequenceArrowThickness 1
+skinparam roundcorner 20
+skinparam maxmessagesize 500
+/'skinparam sequenceParticipant underline'/
+
+actor 导购 as u
+
+participant "h5" as h5
+participant "retail-sales" as sales
+/'participant "kdtId white list" as list
+participant "salesman white list" as list2'/
+participant "ebiz" as ebiz
+
+participant "salesman_rank_log" as t1
+
+participant "apollo" as apollo
+
+u -> h5 : 1报名
+activate h5
+
+h5 -> sales : 1.1请求报名(获取验证码)
+activate sales
+
+sales -> sales : 1.2生成随机六位验证码
+note left
+    存入(redis)，10分钟过期
+end note
+return
+return
+
+u -> h5 : 2 报名(kdtId 和 shopDisplayNo 必有其一)
+note left
+    两者都有，优先校验 shopDisplayNo
+end note
+activate h5
+h5 -> sales : 2.1请求报名(kdtId 和 shopDisplayNo 必有其一)
+activate sales
+
+sales -> apollo : 2.2校验报名开始时间
+activate apollo
+return 2.3 返回
+
+sales -> apollo : 3校验店铺白名单
+note left
+    (kdtId 和 shopDisplayNo 必有其一)
+    两者都有，只校验 shopDisplayNo
+    检查导购所属 rootKdtId 是否存在于被邀请列表
+    这个白名单是邀请商家之后就写好的
+end note
+activate apollo
+return 3.1返回
+
+sales -> ebiz : 4 校验是否该店铺分销员
+activate ebiz
+return  4.1返回
+
+sales -> t1 : 5检测是否已经报名
+note left
+    以 salesmanId 为唯一键
+end note
+activate t1
+return 5.1 返回
+
+sales -> t1 : 6写入db
+note left
+    导购报名成功之后写入db里面，
+    这样以后只更新这张表即可，不用再往里面insert数据了
+
+    db写入 salesman_rank_log，
+    paid_amount = 0
+    finish_amount = 0
+    sign_up_time = now()
+    version = 1
+end note
+activate t1
+return 6.1返回
+
+
+return 9报名成功
+
+return 10报名成功
+
+@enduml

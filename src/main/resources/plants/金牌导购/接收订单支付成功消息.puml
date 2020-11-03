@@ -1,0 +1,72 @@
+@startuml
+skinparam sequenceArrowThickness 1
+skinparam roundcorner 20
+skinparam maxmessagesize 500
+/'skinparam sequenceParticipant underline'/
+
+actor nsq as nsq
+
+participant "retail-sales" as sales
+participant "trade" as trade
+
+participant "salesman_rank_log" as t1
+participant "salesman_achievement_details_log" as t2
+participant "apollo" as apollo
+
+participant "kvds" as kv
+
+participant "gold salesman achievement event" as event
+
+nsq -> sales : 1发送订单（分销）支付成功消息
+activate sales
+
+sales -> sales : 1.1校验是否分销员订单;
+activate sales
+return 1.2返回
+
+sales -> apollo : 2校验销售员是否报名，且在该连锁体系下报名
+activate apollo
+return 3返回
+
+sales -> trade :3查询订单详情;
+activate trade
+
+sales -> apollo : 4校验支付时间是否在活动范围内;
+activate apollo
+return 5返回
+
+sales -> trade : 6查询退款
+activate trade
+return 7返回 计算 realPay - refundTotal
+
+sales -> t2 : 8写入明细表
+note left
+    先在salesman_rank_log查订单，
+    如果存在，说明已被处理直接返回
+    orderNo
+    state = 0
+    salesmanId
+    realPay = 订单的实付金额（realPay - refundTotal）
+    version = 0 (default)
+end note
+activate t2
+return 9返回
+
+sales -> t1 : 10写入导购rank表（汇总表）
+note left
+    salesmanId
+    paidAmount = sum(salesman_achievement_details_log(real_pay)) + realPay
+    version = version (default = 0) + 1
+end note
+activate t1
+return 11返回
+
+sales -> event : 12发送nsq消息
+note left
+    如果 Sum(realPay) > 2000 且 achieve_goal_time <= 0  且 count < 20000
+end note
+activate event
+
+return 13消息处理完成（处理不成功进行重试5次）
+
+@enduml
