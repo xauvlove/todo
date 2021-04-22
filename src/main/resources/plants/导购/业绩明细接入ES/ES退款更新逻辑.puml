@@ -1,0 +1,51 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+skinparam backgroundColor #EEEBDC
+
+skinparam sequence {
+    LifeLineBackgroundColor grey
+}
+
+autonumber
+
+box "Out Service"
+participant "trade-core" as trade
+end box
+
+box "Internal Service"
+participant "retail-sales" as sales
+participant "DB" as db
+participant "tsp" as tsp
+participant "ES" as es
+end box
+
+trade ->o sales : 退款消息
+activate sales
+
+sales -> db : 查询 base_order as order
+activate db
+return 返回
+
+sales -> sales : 检查 order
+activate sales
+sales -> trade : 不存在[丢异常]
+
+sales -> tsp : order 存在, 生成 tsp 任务，1 分钟后执行写入 ES
+note left
+    tsp 任务以 orderNo 作为唯一键，
+    当重复创建任务时，会重置任务
+end note
+activate tsp
+return 返回
+return 返回
+return 返回
+
+tsp -> sales : 回调
+activate sales
+
+sales -> es : 同步 ES
+activate es
+return 返回
+
+@enduml
