@@ -1,0 +1,16 @@
+@startuml
+autonumber
+
+trade_core -> ebiz_salesman : NSQ [ntc_order_pay]
+
+ebiz_salesman -> retail_sales : NSQ [salesman_direct_seller_order_pay]
+activate retail_sales
+
+retail_sales -> retail_sales : 判断是否为融合后店铺
+
+retail_sales -> retail_sales : 判断是否为导购订单[needProcess = true]
+
+trade_core -> retail_sales : NSQ [trade_rp_update_tpc]
+
+
+@enduml

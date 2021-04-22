@@ -1,0 +1,26 @@
+@startuml
+actor tsp as tsp
+
+participant "retail-sales" as sales
+participant "salesman_reward" as reward
+participant "salesman_rank" as t
+
+tsp ->o sales : 定时调用（统计100元奖励）
+
+sales -> reward : 1 count(paidAmount >= 200000 && achieveGoalTime > 0)
+note left
+    pageSize = 500
+    每次 500 页，最多共进行40次查询
+end note
+activate reward
+return 2返回数据 data[]
+
+sales -> reward : 3 写表 reward[i].setType(2)
+note left
+    pageSize = 50
+    最多 400 次写表
+end note
+activate reward
+return 4返回
+
+@enduml

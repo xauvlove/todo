@@ -1,0 +1,17 @@
+@startuml
+'https://plantuml.com/use-case-diagram
+
+usecase "shopping_guide_base_order" as sgbo
+usecase "shopping_guide_achievement_order" as sgao
+usecase "shopping_guide_commission_order" as sgco
+usecase "shopping_guide_invitation_order" as sgio
+
+
+sgbo <-up. sgao : 业绩依赖于导购订单
+sgbo <-left. sgco : 提成依赖于导购订单
+sgbo <-right. sgio : 邀请奖励依赖于导购订单
+
+
+
+@enduml
+

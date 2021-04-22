@@ -1,0 +1,67 @@
+@startuml
+start
+ : 读 zset[99];
+ if(zset[99]不存在)then(yes)
+    : 读 zset.length, zcard;
+    if (zset.length > 0) then(yes)
+        : zset exist;
+        note left
+            说明 zset 存在/没过期
+            但是前 100 名列表不满
+        end note
+
+        /': 排名;
+        : 计算奖金;
+        : 组装 VO;
+        end'/
+    else(no)
+        : zset not exist;
+        note right
+            说明 zset 不存在/已过期
+        end note
+        : 读 DB;
+        : 读到数据List<Data>;
+        if(data.size>100)then(yes)
+             : tail = data[99];
+             : 查询与 tail 销售额相同的导购;
+             note left
+                 要分页吗？
+             end note
+             : 并入 data;
+             : 存入 zset;
+         else(no)
+        endif
+    endif
+ else(no)
+    : zset 查询与 zset[99] score 相同的导购;
+ endif
+  partition 计算排名流程 {
+    : 排名;
+    : 按照 paidAmount 排序;
+    if (如果 当前销售员 paidAmount == 上一个销售员 paidAmount)then(yes)
+        : rank = rank + 1;
+    else(no)
+         : rank = rank;
+    endif
+  }
+  partition 计算奖金流程 {
+    : 计算奖金;
+    : 在本地缓存查询 salesmanId 对应的 achieveGoalTime;
+    if (paidAmount >= 5000)then(yes)
+        : reward += 1000;
+    else(no)
+        : reward += 0;
+    endif
+
+    if (paidAmount >= 2000 && achieveGoalTime > 0)then(yes)
+        : reward += 100;
+        note right
+           achieveGoalTime 存储在本地缓存里
+        end note
+    else(no)
+        : reward += 0;
+    endif
+  }
+  : 组装 VO;
+end
+@enduml

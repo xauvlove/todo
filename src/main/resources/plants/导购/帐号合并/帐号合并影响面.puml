@@ -1,0 +1,63 @@
+@startuml
+left to right direction
+
+package "retail-sales" {
+  actor 导购 as rs
+  package "tables-rs" {
+    usecase "shopping_guide_base_order" as sgbo
+    usecase "shopping_guide_achievement_order" as sgao
+    usecase "shopping_guide_commission_order" as sgco
+    usecase "shopping_guide_invitation_order" as sgio
+
+    usecase "shopping_guide_sales_performance" as sgsp
+    usecase "shopping_guide_redress_data" as sgrd
+    usecase "shopping_guide_redress_order_log" as sgrol
+
+  }
+
+ rs --> sgbo
+ rs --> sgao
+ rs --> sgco
+ rs --> sgio
+
+ rs --> sgsp
+ rs --> sgrd
+ rs --> sgrol
+}
+
+
+package "salesman-center" {
+    actor 销售员中心 as sc
+
+    package "tables-sc" {
+        usecase "sl_commission_sales_data" as scsd
+         note right {
+            导购员维度报表，
+            查看在这个业绩方案下，导购产生了多少提成
+        }
+        usecase "sl_commission_biz_data" as scbd
+        note right {
+            店铺报表，
+            查看在这个业绩方案下，店铺提成
+        }
+    }
+
+    sc --> scsd
+    sc --> scbd
+}
+
+package "retail-finance-performance" {
+    actor 财务中台 as rfp
+
+    package "tables-rfp" {
+        usecase "perf_rule_result" as prr
+        note right {
+            绩效政策结果
+        }
+        usecase "perf_rule_result_detail" as prrd
+    }
+
+    rfp --> prr
+    rfp --> prrd
+}
+@enduml

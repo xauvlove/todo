@@ -1,0 +1,20 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+package base_order更新时机 {
+    package 支付 {
+        usecase "导购订单支付" as pay
+    }
+    package 退款 {
+        usecase "导购订单退款" as refund
+        usecase "邀请奖励订单退款" as cpsRefund
+    }
+
+    package 自动结算 {
+        usecase "导购完成个税认证后，\n 自动发起历史提成结算任务" as autoSettleHistory
+        usecase "提成结算资产返回结果" as autoSettleCallback
+        usecase "订单完成自动结算" as autoSettleOrderSuccess
+    }
+}
+
+@enduml

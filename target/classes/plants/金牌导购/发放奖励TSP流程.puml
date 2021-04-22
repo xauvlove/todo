@@ -6,12 +6,13 @@ participant "tsp all" as all
 participant "tsp single" as sin
 participant "salesman_reward" as reward
 
-sales -> reward : 1统计20100条数据
+sales -> reward : 1统计前100名数据 data[]
 note left
-    select count(*) from salesman_rank_log where finish_amount > 2000;
-    select * from salesman_rank_log where finish_amount > 2000 order by finish_amount desc achieve_goal_time asc limit 1, 100
-    select * from salesman_rank_log where finish_amount > 2000 order by achieve_goal_time asc limit 20000
+    如果发现 data[size]>=100
+    则 拿 data[99].paidAmount 继续查询
+    data[size] 可能大于 100
 end note
+
 activate reward
 return 2返回数据
 

@@ -1,0 +1,29 @@
+@startuml
+actor tsp as tsp
+
+participant "retail-sales" as sales
+participant "salesman_rank" as rank
+participant "salesman_reward" as reward
+participant "reward table" as t
+
+tsp ->o sales : 定时调用（锁榜时）
+
+sales -> rank : 1统计前100名数据 data[]
+note left
+    如果发现 data[size]>=100
+    则 拿 data[99].paidAmount 继续查询
+    data[size] 可能大于 100
+end note
+activate rank
+return 2返回数据 data[]
+
+sales -> sales : 3查询同等末位销售额的销售员
+activate sales
+return
+
+sales -> sales :4 data[i].setType(1)
+
+sales -> t :5写表
+activate t
+return 6返回
+@enduml

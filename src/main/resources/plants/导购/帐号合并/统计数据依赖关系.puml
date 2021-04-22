@@ -1,0 +1,18 @@
+@startuml
+'https://plantuml.com/use-case-diagram
+
+usecase "shopping_guide_achievement_order" as sgao
+usecase "shopping_guide_commission_order" as sgco
+usecase "shopping_guide_invitation_order" as sgio
+usecase "shopping_guide_sales_performance" as sgsp
+usecase "shopping_guide_redress_data" as sgrd
+usecase "shopping_guide_redress_order_log" as sgrol
+
+sgao <-- sgsp
+sgco <-- sgsp
+sgio <-- sgsp
+sgrd <-- sgsp
+sgrol <-- sgsp
+
+
+@enduml

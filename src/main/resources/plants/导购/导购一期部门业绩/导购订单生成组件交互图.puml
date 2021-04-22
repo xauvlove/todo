@@ -1,0 +1,9 @@
+@startuml
+start
+ : mysql -> hive;
+ note left
+    salesmanId, departmentId
+ end note
+
+end
+@enduml
