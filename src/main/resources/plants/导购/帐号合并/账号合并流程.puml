@@ -55,27 +55,60 @@ alt <font size = 16 color = blue> 无任何数据 <b>
 else <font size = 16 color = blue> 有数据 <b>
 
     group retail_manage
+        sales -> sales : 开始 retail_manage 数据库更新
         sales -> es : \n 分页查询订单号 orderNos
         return 返回
         sales -> sales : 使用订单号批量更新 achievement_order commission_order invitation_order 的 shopping_guide_id 字段
+        note left
+            使用 root_kdt_id 和 oldUserId
+            查询 shopping_guide_base_order 索引
+            oldUserId 包括:
+            shopping_guide_id
+            service_shopping_guide_id,
+            invitation_shopping_guide_id
+        end note
+        return 返回
         return 返回
     end
 
     group salesman
+        sales -> sales : 开始 salesman 数据库更新
         sales -> salesman : 使用 old_user_id hq_kdt_id 批量更新 sl_commission_sales_data
+        salesman -> salesman : 根据 id 更新
+        return 更新完成
         return 返回
         sales -> salesman : 使用 old_user_id hq_kdt_id 批量更新 sl_commission_biz_data
+        salesman -> salesman : 根据 id 更新
+        return 返回
+        return 返回
         return 返回
     end
 
    group retail_finance
+        sales -> sales : 开始 retail_finance 数据库更新
         sales -> performance : 使用 old_user_id hq_kdt_id 批量更新 perf_rule_result
+        performance -> performance : 根据 id 更新
+        return 更新完成
         return 返回
         sales -> performance : 使用 old_user_id hq_kdt_id 批量更新 perf_rule_result_detail
+        performance -> performance : 根据 id 更新
+        return 更新完成
+        return 返回
         return 返回
    end
-    return 返回
 
+   group 数据补偿
+        sales -> sales : 如果当前时间大于等于当月 16 号
+        sales -> tsp : 创建 20 号任务
+        return 返回
+        opt
+           [-> sales : 20 号补偿迁移任务
+           sales -> sales : 更新补偿任务
+           return 返回
+           return 返回
+        end
+   end
+   return 返回
 end
 
 @enduml
