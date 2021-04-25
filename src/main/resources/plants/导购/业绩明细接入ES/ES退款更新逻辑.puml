@@ -1,6 +1,6 @@
 @startuml
 'https://plantuml.com/sequence-diagram
-
+hide footbox
 skinparam backgroundColor #EEEBDC
 
 skinparam sequence {
@@ -10,7 +10,7 @@ skinparam sequence {
 autonumber
 
 box "Out Service"
-participant "trade-core" as trade
+participant "nsq 表记录修改" as update
 end box
 
 box "Internal Service"
@@ -18,34 +18,52 @@ participant "retail-sales" as sales
 participant "DB" as db
 participant "tsp" as tsp
 participant "ES" as es
+participant "KV" as kv
 end box
 
-trade ->o sales : 退款消息
+update ->o sales : update 更新消息
 activate sales
 
 sales -> db : 查询 base_order as order
 activate db
 return 返回
 
-sales -> sales : 检查 order
-activate sales
-sales -> trade : 不存在[丢异常]
+alt <font size=15 color=blue>order 不存在<b>
+
+sales -> update : 不存在 丢异常
+note right
+    不存在说明创建消息未进入
+    此时扔异常的原因是：
+    可能支付消息已经在消费，并且读取了老数据并准备写入 ES
+    因此，更新消息到来时 查不到 order 需要扔异常让消息重试 保证数据一致性
+end note
+else <font size=15 color=blue>order 存在<b>
 
 sales -> tsp : order 存在, 生成 tsp 任务，1 分钟后执行写入 ES
 note left
     tsp 任务以 orderNo 作为唯一键，
-    当重复创建任务时，会重置任务
+    当重复创建任务时，会重置任务。
+    因此，当多条更新消息同时到来时[1分钟内]，
+    tsp 任务只会创建一次，但会重置 tsp 的状态[回调时间]
 end note
 activate tsp
 return 返回
 return 返回
-return 返回
 
-tsp -> sales : 回调
-activate sales
+group tsp 回调阶段
+    tsp -> sales : 回调
+    activate sales
 
-sales -> es : 同步 ES
-activate es
-return 返回
+    sales -> db : 按照订单号查询
+    activate db
+    return 返回
 
+    sales -> es : 字段全量同步 ES
+    note left
+        ES 无需要分词的字段
+    end note
+    activate es
+    return 返回
+end
+end
 @enduml

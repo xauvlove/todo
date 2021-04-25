@@ -1,0 +1,81 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+hide footbox
+skinparam backgroundColor #EEEBDC
+
+skinparam sequence {
+    LifeLineBackgroundColor grey
+}
+
+autonumber
+autoActivate on
+
+'不同的系统应使用不同的合并策略
+participant "ebiz-salesman" as ebiz
+participant "retail-sales" as sales
+participant "salesman-center" as salesman
+participant "retail-finance-performance" as performance
+participant "ES" as es
+
+ebiz -> ebiz : 监听账号合并消息，执行合并
+return 返回
+
+ebiz -> ebiz : 1.TSP 回调, processor 执行 \n 2.在每个 processor 执行完成后检查其他 processor 是否执行完成
+
+alt <font size = 16 color = blue> 未完成 <b>
+    loop <font size = 16 color = blue> tsp 回调执行 <b>
+        ebiz -> ebiz : 返回，等待其他 processor TSP 任务回调
+        return
+    end
+else <font size = 16 color = blue> 完成 <b>
+    ebiz ->o sales : 发送账号合并完成消息
+    sales -> sales : 生成延迟 30 分钟的 tsp 任务 [A -> B]
+    note left
+        任务在某些定点回调执行: 0:30, 1:00, 1:30 ~~~, 22:00
+        如果消息过来时间已经超过 22:00，顺延到第二天的 0:30 执行
+    end note
+    return
+    return 返回
+end
+
+[-> sales : TSP 任务 [A -> B] 回调
+
+sales -> sales : 检查是否满足执行条件
+note left
+    1.当天的 DP 任务是否完成
+end note
+
+return 返回
+
+sales -> es : 使用 root_kdt_id 和 shopping_guide_id 查询 shopping_guide_base_order 索引
+return 返回
+
+alt <font size = 16 color = blue> 无任何数据 <b>
+    return 说明导购域 在可视范围内无任何需要更新的数据 返回
+else <font size = 16 color = blue> 有数据 <b>
+
+    group retail_manage
+        sales -> es : \n 分页查询订单号 orderNos
+        return 返回
+        sales -> sales : 使用订单号批量更新 achievement_order commission_order invitation_order 的 shopping_guide_id 字段
+        return 返回
+    end
+
+    group salesman
+        sales -> salesman : 使用 old_user_id hq_kdt_id 批量更新 sl_commission_sales_data
+        return 返回
+        sales -> salesman : 使用 old_user_id hq_kdt_id 批量更新 sl_commission_biz_data
+        return 返回
+    end
+
+   group retail_finance
+        sales -> performance : 使用 old_user_id hq_kdt_id 批量更新 perf_rule_result
+        return 返回
+        sales -> performance : 使用 old_user_id hq_kdt_id 批量更新 perf_rule_result_detail
+        return 返回
+   end
+    return 返回
+
+end
+
+@enduml

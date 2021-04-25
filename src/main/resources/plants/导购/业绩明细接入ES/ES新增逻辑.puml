@@ -6,21 +6,17 @@ skinparam sequence {
 }
 
 autonumber
+autoActivate on
 
-box "Out Service"
-participant "salesman-api" as salesman
-end box
-
-box "Internal Service"
+participant "nsq 表记录创建" as insert
 participant "retail-sales" as sales
+participant "DB" as db
 participant "ES" as es
-end box
 
-salesman ->o sales : 支付消息
-activate sales
-
+insert ->o sales : insert 消息
+sales -> db : 查询表记录
+return 返回
 sales -> es : 同步 ES
-activate es
 return 返回
 return 返回
 
