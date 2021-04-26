@@ -16,6 +16,7 @@ participant "retail-sales" as sales
 participant "salesman-center" as salesman
 participant "retail-finance-performance" as performance
 participant "ES" as es
+participant "tsp" as tsp
 
 ebiz -> ebiz : 监听账号合并消息，执行合并
 return 返回
@@ -29,12 +30,35 @@ alt <font size = 16 color = blue> 未完成 <b>
     end
 else <font size = 16 color = blue> 完成 <b>
     ebiz ->o sales : 发送账号合并完成消息
-    sales -> sales : 生成延迟 30 分钟的 tsp 任务 [A -> B]
+    sales -> sales : 判断当前时间是否不在当月 16号 - 19号
+    sales -> sales : 判断这个人是否存在正在执行/待执行的账号合并任务
     note left
-        任务在某些定点回调执行: 0:30, 1:00, 1:30 ~~~, 22:00
-        如果消息过来时间已经超过 22:00，顺延到第二天的 0:30 执行
+        两条消息到达情况 (消息乱序)
+        |= |= A -> B |= B -> C |
+        | A -> B | 幂等 | 无乱序 |
+        | B -> C | B -> C 等待 A -> B 唤醒 | 幂等 |
+
+        多条消息到达情况 (消息乱序)
+        |= |= A -> B |= B -> C | C -> D |
+        | A -> B | 幂等 | 无乱序 | 无乱序 |
+        | B -> C | B -> C 等待 A -> B 唤醒 | 幂等 | 无乱序 |
+        | C -> D | C -> D 等待 B -> C 唤醒 | C -> D 等待 B -> C 唤醒 | 幂等 |
     end note
-    return
+    alt <font size = 16 color = blue> 是 <b>
+        sales -> sales : 生成延迟 30 分钟的 tsp 任务 [A -> B]
+        return 返回
+        note left
+            任务在某些定点回调执行: 0:30, 1:00, 1:30 ~~~, 22:00
+            如果消息过来时间已经超过 22:00，顺延到第二天的 0:30 执行
+        end note
+    else <font size = 16 color = blue> 否 <b>
+        sales -> sales : 生成时间在 20 号的 tsp 任务 [A -> B]
+    end
+
+
+    return 返回
+    return 返回
+
     return 返回
 end
 
@@ -97,17 +121,15 @@ else <font size = 16 color = blue> 有数据 <b>
         return 返回
    end
 
-   group 数据补偿
-        sales -> sales : 如果当前时间大于等于当月 16 号
-        sales -> tsp : 创建 20 号任务
-        return 返回
-        opt
-           [-> sales : 20 号补偿迁移任务
-           sales -> sales : 更新补偿任务
+    group retail_manage
+           sales -> sales : 开始 retail_manage.shopping_guide_base_order 表数据更新
+           sales -> es : \n 分页查询订单号 orderNos
            return 返回
+           sales -> sales : 根据 订单号 更新
+           return 更新完成
            return 返回
-        end
-   end
+      end
+
    return 返回
 end
 

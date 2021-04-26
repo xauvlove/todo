@@ -1,0 +1,11 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+
+usecase "perf_rule_result_detail" as detail
+usecase "perf_rule_result" as result
+usecase "shopping_guide_commission_order" as sgco
+
+sgco .up-> detail
+sgco .left-> result
+@enduml

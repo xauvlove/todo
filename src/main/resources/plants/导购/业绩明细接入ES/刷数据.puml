@@ -16,13 +16,10 @@ participant "DB" as db
 participant "ES" as es
 participant "DB-mi" as db_mi
 
-group DP-第一阶段[全量]
+group <font size = 16 color = blue> DP-第一阶段(全量)
     dp -> db : 全量拉数据
     note left
-        前提：retail-sales 蓝绿发布中
-        已经开始了 ES 新增和更新逻辑
-        此时实时/离线拉取数据到 DP
-        DP 刷入 ES
+        开始时间设为 t
     end note
     activate db
     return 返回
@@ -31,12 +28,10 @@ group DP-第一阶段[全量]
     return 返回
 end
 
-group DP-第二阶段准备[增量]
+group <font size = 16 color = blue> DP-第二阶段准备(增量）
     dp -> db : 拉取增量数据
     note left
-        updated_at >= ?
-            or
-        created_at >= ?
+        updated_at >= t
     end note
     activate db
     return 返回
@@ -45,8 +40,8 @@ group DP-第二阶段准备[增量]
      return 返回
 end
 
-group 接口-第二阶段[增量]
-    sales -> db_mi : 拉取增量数据
+group <font size = 16 color = blue>接口-第二阶段(增量)
+    sales -> db_mi : 查询导出的增量数据
     note left
         DP 开始时间以后的数据
     end note
