@@ -1,0 +1,94 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+hide footbox
+skinparam backgroundColor #EEEBDC
+
+skinparam sequence {
+    LifeLineBackgroundColor grey
+}
+
+autonumber
+
+actor 用户 as user
+participant "交易" as trade
+participant "导购大赛消息监听器" as sales
+participant "redis" as redis
+participant "交易ES" as es
+participant "交易DB" as db
+participant "资产" as asset
+
+user -> trade ++ : 创建订单
+
+return 返回订单号
+
+user -> trade ++ : 支付
+trade -> asset ++ : 调用资产接口[具体未知]/或异步
+return 返回/或监听消息
+return 交易完成
+
+trade -> sales ++ : 发送支付消息
+alt <font size = 16 color = blue> 是导购大赛域订单 <b>
+    sales -> redis ++ : 打标，needProcess = true
+    return 返回
+else <font size = 16 color = blue> 非导购大赛域订单 <b>
+    sales -> redis ++ : 打标，needProcess = false
+    return 返回
+end
+return ACK
+
+trade --> sales ++ : 发送退款消息
+    sales -> redis ++ : 查询标记 sign
+    return 返回
+
+    alt <font size = 16 color = blue> sign 存在 <b>
+        sales -> sales ++ : 业务处理
+        return 返回
+    else <font size = 16 color = blue> sign 不存在 <b>
+
+        group 错误解法
+            sales -> sales ++ : 丢异常
+            return 返回
+            note left
+                这里 sign 不存在的原因可能是
+                Case 1.消息乱序
+                Csae 2.交易根本没发出支付成功消息
+
+                对于 case 1 可以丢异常让消息重试，后续支付消息进来就可以找到标记
+                对于 case 2 如果无脑丢异常只会无限让消息重试，直到消息阻塞
+
+                对于 case 2 的情况发生的原因之一是:
+                    用户在支付等待支付结果时，交易调用资产存在时延或者其他原因
+                    最终导致订单支付超时 触发交易系统自动关单[关单过程会产生退款]
+                    发送退款消息，这就导致了交易只发出了 退款消息，没有支付消息
+            end note
+
+
+        end
+
+        group 正确解法
+            sales -> es ++ : 查询退款详情 refundInfo
+            return 返回
+            sales -> sales ++ : 如果 refundInfo.source.bizToken \n = 0d0860aa-74a0-4f1b-9e75-d67b45fb9cda
+            note left
+                这里的判定逻辑不只是这么简单，需要判断很多条件
+            end note
+            return
+            note left
+                解决 case 2 的方法:
+                    了解到交易对这种场景做了标记
+                    在 refundInfoList 里面，refundInfo 有个字段 source
+                    source 有个字段 bizToken
+                    如果 bizToken = 0d0860aa-74a0-4f1b-9e75-d67b45fb9cda [固定]
+                    则表示为 买家还在支付时，商家取消了订单，导致关单
+                    这种订单认为在导购域或者其他域 都可以(需考虑具体业务场景)认作为这笔订单从来没发生过
+                    直接丢掉消息即可
+            end note
+        end
+
+        return ACK
+
+    end
+
+
+@enduml

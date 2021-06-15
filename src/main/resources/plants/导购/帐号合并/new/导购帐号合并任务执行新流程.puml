@@ -1,0 +1,139 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+hide footbox
+skinparam backgroundColor #EEEBDC
+
+skinparam sequence {
+    LifeLineBackgroundColor grey
+}
+
+autonumber
+autoActivate on
+
+participant "tsp" as tsp
+participant "guide-event" as event
+participant "retail-finance-performance" as financePerf
+participant "salesman-center" as salesman
+participant "guide-performance" as guidePerf
+participant "retail-sales" as sales
+participant "ES" as es
+participant "base_order_migrate_data" as migrate
+participant "task_tables" as taskTables
+
+tsp -> event : 30 分钟后回调
+
+group 检查阶段
+
+    event -> event : 开始检查
+
+    event -> taskTables : 使用 taskId 查询任务
+    return
+
+    event -> event : 判断 task 是否已经执行完成[任务有 state 标记，如果执行完成则会有 success 标记]
+    return
+
+    event -> event : 判断这个人是否存在正在执行/待执行的账号合并任务
+    return
+
+    event -> event : 判断当前时间是否不在当月 16号 - 19号
+    return
+
+    event -> event : 检测此任务的上游任务是否已经执行完成
+    note right
+        比如两个任务 A->B B->C，
+        那么 B->C 的上游任务是 A->B
+    end note
+    return
+
+    event -> event : 检查当天的 DP/Hive 任务是否已经执行完成
+    return
+
+    event -> es : 使用 rootKdtId 和 fromUId 搜索订单，并返回结果
+    note right
+        如果查询结果为空，
+        说明这个帐号在导购域没有任何数据
+        并不需要执行帐号合并流程
+        直接标记任务成功即可
+    end note
+    return
+    return
+
+end group
+
+group 执行阶段
+
+    event -> event : 开始执行帐号数据更新
+
+    event -> taskTables : 标记任务为执行状态
+    note right
+        标记 event_task 和 event_detail_task
+    end note
+    return
+
+    event -> taskTables : 查询子任务，过滤出还未完成的子任务 ExecTask 并找出对应的处理器 ExecTaskProcessor
+    return
+
+    event -> event : 对 List<ExecTaskProcessor> 进行排序
+    note right
+        base_order 优先级最低
+    end note
+    return
+
+    group 财务中台数据更新
+        event -> financePerf : 循环调用接口更新 perf_result
+        return
+
+        event -> financePerf : 循环调用接口更新 perf_result_detail
+        return
+    end group
+
+    group 导购业绩报表更新
+        event -> salesman : 循环更新 biz_data
+        return
+
+        event -> salesman : 循环更新 sales_data
+        return
+
+        event -> salesman : 增量循环更新 sales_data
+        return
+    end group
+
+
+
+    group 导购业绩更新
+        event -> guidePerf : 循环更新业绩统计 sales_performance
+        return
+
+        event -> guidePerf : 循环更新 achievement_order
+        return
+
+        event -> guidePerf : 循环更新 commission_order
+        return
+
+        event -> guidePerf : 循环更新 invitation_order
+        return
+
+        loop
+            event -> es : 使用游标分页查询相关导购订单 orders
+            return
+            event -> migrate : 保存
+            return
+        end
+
+        loop 分页查询和删除所有和本次任务相关的 orders
+            event -> migrate : 查询所有和本次任务相关的 orders
+            return
+            event -> guidePerf : 更新 orders 导购员 id
+            return
+            event -> migrate : 删除 migrate 记录
+            return
+        end
+    end group
+    return
+end group
+
+event -> taskTables : 更新 event_task event_detail_task 为完成状态
+return
+return 全部流程结束
+@enduml

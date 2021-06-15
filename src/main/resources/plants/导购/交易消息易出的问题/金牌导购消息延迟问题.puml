@@ -1,0 +1,47 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+hide footbox
+skinparam backgroundColor #EEEBDC
+
+skinparam sequence {
+    LifeLineBackgroundColor grey
+}
+
+autonumber
+
+'autoActivate on
+
+note left trade
+    锁榜：[导购员进行业绩 PK 排名]
+    1.锁榜后，由于榜单锁定不再变化，因此在产生的业绩也不应该记录
+    2.锁榜发生在 0:00
+end note
+
+participant "交易" as trade
+participant "金牌导购支付成功消息监听器" as sales
+
+group 0:00 前
+    trade --> sales ++ : 发送/接收支付消息 payTime = 23:59
+    sales -> sales ++ : 判断此时未锁榜，且支付时间在 PK 期间，消费成功
+    note left
+        此时导购业绩记录正常
+    end note
+    return
+    return ACK 返回
+end
+
+group 0:00 后
+    trade --> sales ++ : 发送/接收支付消息 payTime = 23:59
+    sales -> sales ++ : 判断此时已锁榜，不管支付时间是否在 PK 期间，消息过滤
+    note left
+        此时导购业绩记录异常
+        由于榜单已锁定，但 payTime 仍然在 PK 期间
+        该笔订单业绩没有记录上
+    end note
+    return
+    return ACK 返回
+end
+
+
+@enduml

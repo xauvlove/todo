@@ -1,0 +1,69 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+hide footbox
+skinparam backgroundColor #EEEBDC
+
+skinparam sequence {
+    LifeLineBackgroundColor grey
+}
+
+autonumber
+
+participant "交易" as trade
+participant "导购大赛退款消息监听器" as sales
+participant "交易ES" as es
+participant "交易DB" as db
+
+trade --> sales ++ : 退款消息
+
+sales -> es ++ : 查询订单详情
+return 返回
+alt <font size = 16 color = blue> payTime > 0 <b>
+    sales -> sales ++ : 订单支付时间在 PK 期间，成功记录业绩
+    return
+    return ACK
+else <font size = 16 color = blue> payTime = 0 <b>
+    trade --> sales ++ : 退款消息
+    sales -> db ++ : 查询实时订单详情
+    note left
+        这里查实时订单的原因是：
+        ES 存在同步延迟，预估在 1 秒内
+        如果接到消息立即查询 ES，可能查不到ES新数据
+        我们又不可能睡眠 1 秒，因此需要查询实时订单
+    end note
+    return 返回
+    alt <font size = 16 color = blue> payTime > 0 <b>
+         sales -> sales ++ : 订单支付时间在 PK 期间，成功记录业绩
+         return
+    else <font size = 16 color = blue> payTime = 0 <b>
+         sales -> sales ++ : 丢异常
+         note left
+            这里丢异常不可取，因为：
+            1.可能是 支付还未完成，下次消息重试可能就能查到 payTime
+            2.可能是 支付完成不了，这种情况存在于多阶段支付
+               2.1. 多阶段支付是组合支付 存在 '总单' 和 '子单'的概念，下面是遇到的异常情况:
+                    首先创建订单生成总单 A，A.payTime = 1987年1月1日 = 0
+                    先用微信支付一笔，生成订单 A1，A1.payTime = now() > 0
+                    [准备再用现金支付一笔 预计生成订单 A2]
+                    但此时由于支付超时、商家开启整单取消 导致交易关闭
+                    此笔交易为未完成状态，此时总单 A.payTime 依然是 0
+                    我们通常读取订单信息，读取的是总单 A 的信息
+                    此时 A.payTime 永远定格在了 0 值
+                    因此在导购大赛域，已经无法使用 payTime 作为判断该订单是否在 PK 时间段内
+         end note
+
+         note right
+            solution 1: 使用订单创建时间作为订单支付时间
+            solution 2: 判断此时 payTime 如果依然为空或者为 0，认为这个消息在导购域是无效单，丢弃
+            solution 3: 做更复杂的判断，比如判断总单和子单的关系
+            本次导购大赛采用 solution 2，
+                如果 退款消息到了之后，payTime 依然为空，
+                认为在导购大赛域，这笔订单从没有发生过，且不需要处理记录
+         end note
+    end
+end
+return
+return ACK
+
+@enduml

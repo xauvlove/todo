@@ -1,0 +1,33 @@
+@startuml
+
+usecase "导购订单无条件搜索"
+
+usecase "按照时间范围查询"
+
+usecase "按照某个导购查询" as shopping_guide_search
+
+usecase "按照销售导购查询" as sale
+
+usecase "按照专属导购查询" as service
+
+usecase "按照邀请导购查询" as inviter
+
+sale .up-> shopping_guide_search
+service .left-> shopping_guide_search
+inviter .right-> shopping_guide_search
+
+usecase "导购订单按照部门查询" as department_search
+sale .up-> department_search
+service .up-> department_search
+inviter .up-> department_search
+
+usecase "导购订单按照店铺查询"
+
+note left
+|= |= A -> B |= B -> C | C -> D |
+| A -> B | 幂等 | 无乱序 | 无乱序 |
+| B -> C | B -> C 等待 A -> B 唤醒 | 幂等 | 无乱序 |
+| C -> D | C -> D 等待 B -> C 唤醒 | C -> D 等待 B -> C 唤醒 | 幂等 |
+end note
+
+@enduml

@@ -1,0 +1,77 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+hide footbox
+skinparam backgroundColor #EEEBDC
+
+skinparam sequence {
+    LifeLineBackgroundColor grey
+}
+
+autonumber
+
+actor 用户 as user
+participant "交易" as trade
+participant "salesman-api" as ebiz
+participant "retail-sales 支付监听器" as in
+participant "retail-sales 导购业绩监听器" as ina
+participant "retail-sales 退款监听器" as out
+participant "redis" as redis
+
+user -> trade ++ : 发起交易
+return 交易完成
+
+trade ->o ebiz ++ : 发送支付成功消息 Message in 1
+ebiz -> ebiz ++ : 内部处理
+return 完成
+return ACK
+
+ebiz ->o in ++ : 发送支付成功消息 Message in 2
+
+in -> in ++ : 内部处理
+
+return 返回
+return ACK
+
+in ->o ina ++ : 发送导购订单消息 Message in 3
+note left
+    创建导购业绩
+end note
+
+ina -> ina ++ : 内部处理
+ina -> redis ++ : 打标记 sign
+return 返回
+return 完成
+return ACK
+
+trade -> out ++ : 发送退款消息 Message out 1
+out -> redis ++ : 查找 sign 标记
+return 返回
+group sign 存在
+    out -> out ++ : 顺序消息消费正常处理
+    return 返回
+    return ACK
+end
+
+group sign 不存在
+    trade -> out ++ : 发送退款消息 Message out 1 \n 此时假设 Message in 3 消息未到
+    out -> redis ++ : 查询 sign 标记
+    return 查询为空
+    group 错误解法
+        out -> out ++ : 直接丢弃消息
+        note left
+            直接丢弃消息会导致，
+            当 Message in 3 到来且消费的时候，往 DB 里面写数据是 未退款前的数据
+        end note
+        return
+    end
+
+    group 正确解法
+        out -> out ++ : 丢异常，让消息重试
+        note left
+            丢异常让消息重试，等待正向消息进来之后，再消费此条消息
+        end note
+        return
+    end
+    return ACK
+end
+@enduml

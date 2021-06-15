@@ -1,0 +1,37 @@
+@startuml
+'https://plantuml.com/use-case-diagram
+
+left to right direction
+
+: User : as user
+
+usecase 按照导购员搜索 as ShoppingGuide
+
+usecase 销售导购 as sale
+
+usecase 专属导购 as service
+
+usecase 邀请导购 as invitation
+
+usecase 业绩 as _achievement
+
+usecase 提成 as _commission
+
+usecase 邀请奖励 as _invitation
+
+user --> ShoppingGuide
+
+ShoppingGuide --> sale
+ShoppingGuide --> service
+ShoppingGuide --> invitation
+
+sale --> _achievement
+sale --> _commission
+sale --> _invitation
+service --> _achievement
+service --> _commission
+service --> _invitation
+invitation --> _achievement
+invitation --> _commission
+invitation --> _invitation
+@enduml
