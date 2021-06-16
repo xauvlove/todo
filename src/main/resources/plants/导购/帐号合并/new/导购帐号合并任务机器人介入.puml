@@ -1,0 +1,54 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+hide footbox
+skinparam backgroundColor #EEEBDC
+
+skinparam sequence {
+    LifeLineBackgroundColor grey
+}
+
+state "tsp回调" as callback
+
+state "帐号合并前置检查" as check
+
+state s1 <<choice>>
+
+state "帐号合并任务状态更新" as executing
+
+state "机器人" as robot
+robot : 借助 TSP 实现
+robot : 每隔 5 分钟进行回调检查任务状态
+robot : 机器人不但有健康检查的作用，还可以重试此任务
+
+state "数据更新" as updating
+
+state "数据更新完成" as success
+state "数据更新超时" as overtime
+state "数据更新中断" as interrupt
+
+callback -right-> check
+check -right-> executing
+executing -right-> s1
+s1 --> robot : 发起任务执行状态健康检查任务
+s1 -right-> updating : 执行
+
+updating --> success
+updating -[dotted]-> overtime
+updating --> interrupt
+
+robot ----up[dotted]-> success : 主动检查，不通知，\n 此机器人生命周期结束
+robot ----up[dotted]-> overtime : 主动检查，发起通知，\n 根据配置自动重试
+note left
+    配置检查超时超过 m 次，
+    认为这个任务被异常中断
+    [但任务状态没有更新为 '已中断']
+    比如：应用发布导致容器被回收
+end note
+robot ----up[dotted]-> interrupt : 主动检查，发起通知，\n 根据配置自动重试
+note left
+    机器人重新执行，
+    根据配置自动重试
+end note
+
+@enduml

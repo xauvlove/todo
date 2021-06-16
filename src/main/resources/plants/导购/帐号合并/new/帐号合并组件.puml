@@ -1,0 +1,90 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+'top to bottom direction替换为left to right direction
+
+skinparam backgroundColor #EEEBDC
+
+skinparam sequence {
+    LifeLineBackgroundColor grey
+}
+
+top to bottom direction
+
+package 帐号合并组件 {
+  package 模块 {
+    node 前置检查 {
+          [hive任务]
+          [月结时期]
+          [时间区间]
+          [任务状态]
+    }
+
+    node 执行模块 {
+        [财务中台]
+        [业绩报表]
+        [业绩统计]
+        [导购订单]
+        [环绕]
+        note bottom of [环绕]
+            每个执行模块都对应若干任务
+            任务执行前后都需要更改任务的执行状态
+            因此需要有一个通用的 增强 执行模块来做这些共有操作
+        end note
+        [财务中台] --> [环绕]
+        [业绩报表] --> [环绕]
+        [业绩统计] --> [环绕]
+        [导购订单] --> [环绕]
+    }
+
+    node 机器人 {
+        [任务重试]
+        [健康检查]
+    }
+
+   前置检查 -[hidden]>执行模块
+   执行模块 -[hidden]>机器人
+  }
+
+  package 接入控制 {
+    [nsq]
+    note left
+        topic:
+        ds_account_merge_success
+    end note
+
+    [es]
+    note left
+        index:
+        shopping_guide_base_order
+    end note
+
+    [tsp]
+    note left
+        task:
+        account_merge_*
+    end note
+
+    [apollo]
+    note left
+        application:
+        account_merge_config
+    end note
+
+    [db]
+    note left
+        tables:
+        shopping_guide_event_task
+        shopping_guide_event_detail_task
+        shopping_guide_event_exec_task
+    end note
+
+    [nsq] --[hidden]>[es]
+    [es] --[hidden]>[tsp]
+    [tsp] --[hidden]>[apollo]
+    [apollo] --[hidden]>[db]
+  }
+}
+
+帐号合并组件 -[hidden]> 接入控制
+
+@enduml

@@ -105,6 +105,9 @@ group 执行阶段
         event -> guidePerf : 循环更新业绩统计 sales_performance
         return
 
+        event -> guidePerf : 增量更新业绩统计 sales_performance
+        return
+
         event -> guidePerf : 循环更新 achievement_order
         return
 
