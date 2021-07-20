@@ -1,0 +1,112 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+hide footbox
+skinparam backgroundColor #EEEBDC
+autoActivate on
+autonumber
+
+skinparam sequence {
+ArrowColor black
+ActorBorderColor black
+LifeLineBorderColor black
+LifeLineBackgroundColor #8CCEF1
+
+ParticipantBorderColor black
+ParticipantBackgroundColor #8CCEF1
+'ParticipantFontName Impact
+ParticipantFontSize 15
+ParticipantFontColor black
+
+ActorBackgroundColor #8CCEF1
+ActorFontColor black
+ActorFontSize 15
+ActorFontName Aapex
+}
+
+actor tsp回调 as tsp
+Participant BonusService
+Participant BonusDomainService
+Participant BonusRepository
+Participant BonusAwardService
+Participant 外部系统 as out
+Participant tsp as publish
+
+tsp -> BonusService : 按照 root_kdt_id, activity_id 回调
+note left
+    活动一旦开始，立即发送一个 tsp
+    这个 tsp 用于发放奖励
+    发放奖励日期取决于活动配置
+
+    tsp 数据内容
+    bizKey = rootKdtId + "$" + activity_id + "$" + type
+    extra = 空 或者 award_no + "$" + 发放重试次数
+    type : 总体发放 or 部分发放 or 个人发放
+    type:all 总体发放是某一时间，第一次统一对导购员进行奖励发放
+    type:part 店铺余额不足情况
+    type:single 个人发放，对于个人没有完成个税认证，系统原因导致发放失败
+
+    type = all: 将所有数据捞出来
+    type = part: 将失败的或者还未发放的捞出来
+    type = single: 捞指定 award_no 的
+end note
+
+BonusService -> BonusDomainService : 回调准备进行发放奖励
+
+group 准备阶段
+    BonusDomainService -> BonusRepository : 根据 type 分页/一次性 读取待发放的奖励数据
+    note left
+        根据 tsp 回调时 type 类型
+        选择一次性读取或者分页读取
+    end note
+    return 返回
+end group
+
+
+group 奖励发放阶段
+    loop 循环待发放列表，逐个发放，根据 type 选择发放策略
+        BonusDomainService -> BonusAwardService : 组装用户数据 \n 按照 award_no 进行发放
+        alt 发放成功
+            BonusAwardService -> out : 发放
+            note left
+                基本功能
+                1.外部系统做好单号的幂等
+                2.奖励发放前，校验用户是否已经个税认证，
+                   如果没有认证，则直接返回失败
+                3.发放失败后，自动根据配置
+                   再次发送 tsp 任务等待重试
+            end note
+            return 返回
+
+        else 发放失败
+            return 返回成功/失败标记
+        end
+
+        BonusDomainService -> BonusRepository : 记录奖励发放结果 更改相应标记
+        return 返回
+
+        BonusDomainService -> BonusDomainService : 将不同失败类型加入不同队列
+        note left
+            统一发放有两个队列，
+            1.发放完毕队列
+            2.发放失败队列
+
+            如果失败，继续执行循环发放
+            存在一种可能：店铺余额对这个人不够发放，但可能对下个人够发放
+        end note
+        return 返回
+    end
+end group
+
+group 奖励发放补偿阶段
+    BonusDomainService -> publish : 发送延时任务，准备二次发放
+      note left
+        只有失败队列有数据时，才会发送 tsp 任务
+      end note
+    return 返回
+end group
+
+
+return 全部发放完毕返回
+return tsp 执行完成
+
+@enduml

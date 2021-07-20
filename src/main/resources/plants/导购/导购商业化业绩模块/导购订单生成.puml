@@ -1,0 +1,64 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+hide footbox
+skinparam backgroundColor #EEEBDC
+
+skinparam sequence {
+    LifeLineBackgroundColor grey
+}
+
+autonumber
+autoActivate on
+
+participant "trade-core" as trade
+participant "ebiz-salesman" as ebiz
+participant "retail-sales" as sales
+participant "shopping_guide" as sg
+participant "salesman-center" as salesman
+participant "base_order" as base_order
+participant "业绩提成订单" as acquired_order
+participant "sales-performance" as salesPerformance
+participant "shop-performance" as shopPerformance
+participant "guide-performance" as performance
+
+trade o-> ebiz : 订单支付
+
+ebiz -> ebiz : 处理订单
+ebiz -> ebiz : 查询关系
+return 完成
+return 完成
+
+ebiz o-> sales : 订单支付
+
+sales -> sg : 判断订单是付费或免费
+return
+
+sales -> base_order : 生成导购订单
+return
+return
+return
+
+sales o-> sales : 发出生成激励订单消息
+
+sales -> salesman : 查询店铺配置，判断业绩归属
+note right
+    如果关闭免费导购，则无归属
+    如果开启免费导购，按照店铺设置进行归属
+end note
+return
+
+sales -> acquired_order : 记录业绩，业绩统计
+return
+
+sales -> salesPerformance : 统计导购业绩
+return
+
+sales -> shopPerformance : 按照店铺统计业绩
+return
+
+sales -> performance : 发出一个业绩统计消息
+return
+
+return 结束
+@enduml

@@ -1,0 +1,50 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+hide footbox
+skinparam backgroundColor #EEEBDC
+autoActivate on
+autonumber
+
+skinparam sequence {
+ArrowColor black
+ActorBorderColor black
+LifeLineBorderColor black
+LifeLineBackgroundColor #8CCEF1
+
+ParticipantBorderColor black
+ParticipantBackgroundColor #8CCEF1
+'ParticipantFontName Impact
+ParticipantFontSize 15
+ParticipantFontColor black
+
+ActorBackgroundColor #8CCEF1
+ActorFontColor black
+ActorFontSize 15
+ActorFontName Aapex
+}
+
+actor nsq as nsq
+Participant TransferFinishListener
+Participant BonusService
+Participant BonusDomainService
+Participant BonusFactory
+Participant BonusRepository
+
+nsq -> TransferFinishListener : 监听转账完成消息，并获取路由 BonusService
+note right
+    由于转账订单是唯一的
+    不同业务用的转账订单号也是唯一的
+    因此 TransferFinishListener 可以复用处理所有的转账完成消息
+end note
+TransferFinishListener -> BonusService : 调用服务
+BonusService -> BonusDomainService : 调用领域服务：转账完成
+
+BonusDomainService -> BonusFactory : 转账完成
+return 返回
+BonusDomainService -> BonusRepository : 将奖励记录置为已完成
+return 返回
+return 返回
+return 返回
+return 返回
+
+@enduml

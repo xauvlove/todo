@@ -1,0 +1,50 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+hide footbox
+skinparam backgroundColor #EEEBDC
+autoActivate on
+autonumber
+
+skinparam sequence {
+ArrowColor black
+ActorBorderColor black
+LifeLineBorderColor black
+LifeLineBackgroundColor #8CCEF1
+
+ParticipantBorderColor black
+ParticipantBackgroundColor #8CCEF1
+'ParticipantFontName Impact
+ParticipantFontSize 15
+ParticipantFontColor black
+
+ActorBackgroundColor #8CCEF1
+ActorFontColor black
+ActorFontSize 15
+ActorFontName Aapex
+}
+
+actor 商家管理员 as admin
+Participant ActivityOrganizationService
+Participant BonusReadInnerService
+Participant BonusRepository
+
+admin -> ActivityOrganizationService : 查询团列表
+
+group 查询团基本信息
+    ActivityOrganizationService -> ActivityOrganizationService : 查询团基本信息
+    return
+end group
+
+group 查询团获奖情况
+    ActivityOrganizationService -> BonusReadInnerService : 根据 root_kdt_id，\n activity_id，\n organization_id 查询奖励发放情况
+    BonusReadInnerService -> BonusRepository : 批量查询
+    return 返回
+
+    BonusReadInnerService -> BonusReadInnerService : 根据奖励发放情况 组装发放状态
+    return 返回
+    return 返回
+end group
+
+return 返回
+
+@enduml
