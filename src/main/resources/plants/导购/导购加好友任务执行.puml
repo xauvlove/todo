@@ -1,0 +1,52 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+hide footbox
+skinparam backgroundColor #EEEBDC
+autoActivate on
+autonumber
+
+skinparam sequence {
+ArrowColor black
+ActorBorderColor black
+LifeLineBorderColor black
+LifeLineBackgroundColor #8CCEF1
+
+ParticipantBorderColor black
+ParticipantBackgroundColor #8CCEF1
+'ParticipantFontName Impact
+ParticipantFontSize 15
+ParticipantFontColor black
+
+ActorBackgroundColor #8CCEF1
+ActorFontColor black
+ActorFontSize 15
+ActorFontName Aapex
+}
+
+
+actor "nsq 消息" as nsq
+Participant GuideTaskAddFriendsListener as guideTaskAddFriendsListener
+Participant GuideTaskAddFriendsProcessor as guideTaskAddFriendsProcessor
+Participant GuideTaskAddFriendsDomainService as guideTaskAddFriendsDomainService
+Participant GuideTaskRepository as guideTaskRepository
+Participant GuideTaskDataRepository as guideTaskDataRepository
+Participant NsqProducer as nsqProducer
+
+nsq -> guideTaskAddFriendsListener : 监听加好友结果消息
+
+guideTaskAddFriendsListener -> guideTaskAddFriendsProcessor : 开始处理
+
+guideTaskAddFriendsProcessor -> guideTaskAddFriendsDomainService : 处理加好友成功消息
+note left
+    消息来了也就说明加好友成功了
+end note
+
+guideTaskAddFriendsDomainService -> guideTaskDataRepository : 根据 missionId，external_user_id remark_mobile 查询任务明细
+
+group Transaction
+    guideTaskAddFriendsDomainService -> guideTaskDataRepository : 更新加好友成功
+end group
+
+guideTaskAddFriendsDomainService -> nsqProducer : 发出消息，用于统计
+
+@enduml

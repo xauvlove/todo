@@ -1,0 +1,79 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+hide footbox
+skinparam backgroundColor #EEEBDC
+autoActivate on
+autonumber
+
+skinparam sequence {
+ArrowColor black
+ActorBorderColor black
+LifeLineBorderColor black
+LifeLineBackgroundColor #8CCEF1
+
+ParticipantBorderColor black
+ParticipantBackgroundColor #8CCEF1
+'ParticipantFontName Impact
+ParticipantFontSize 15
+ParticipantFontColor black
+
+ActorBackgroundColor #8CCEF1
+ActorFontColor black
+ActorFontSize 15
+ActorFontName Aapex
+}
+
+actor 部门管理员 as admin
+Participant 前端 as front
+Participant GuideTaskWriteService as guideTaskWriteService
+Participant GuideTaskValidator as guideTaskValidator
+Participant GuideTaskFactory as guideTaskFactory
+Participant GuideTaskDomainService as guideTaskDomainService
+Participant GuideTask as guideTask
+Participant GuideTaskRepository as guideTaskRepository
+Participant GuideTaskContentRepository as guideTaskContentRepository
+Participant NsqProducer as nsqProducer
+
+admin -> front : 创建任务，提交页面
+
+front -> guideTaskWriteService : 提交请求
+
+guideTaskWriteService -> guideTaskValidator : validate
+note left
+    前端提交创建任务请求
+    应该具有的参数:
+    1.task 基本参数
+    2.下发的目标对象 list 或者具体的下发目标
+    3.time
+    4.type
+    5.source
+    6.operator
+end note
+
+guideTaskWriteService -> guideTaskFactory : buildTask
+note left
+    根据不同的任务类型 build 不同的 task
+end note
+
+guideTaskWriteService -> guideTaskDomainService : createTask
+
+guideTaskDomainService -> guideTask : validate
+
+guideTaskDomainService -> guideTask : status flow
+note left
+    根据不同的任务类型，将状态流转到下一状态
+end note
+
+group Transaction
+    guideTaskDomainService -> guideTaskRepository : insert
+
+    guideTaskDomainService -> guideTaskContentRepository : insert
+end group
+
+guideTaskWriteService -> nsqProducer : send message
+    note left
+        发出消息
+        任务下发域接收消息进行任务下发
+        message 里面只有 taskNo 或者 taskNo + taskType
+    end note
+@enduml

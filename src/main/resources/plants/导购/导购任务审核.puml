@@ -1,0 +1,56 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+hide footbox
+skinparam backgroundColor #EEEBDC
+autoActivate on
+autonumber
+
+skinparam sequence {
+ArrowColor black
+ActorBorderColor black
+LifeLineBorderColor black
+LifeLineBackgroundColor #8CCEF1
+
+ParticipantBorderColor black
+ParticipantBackgroundColor #8CCEF1
+'ParticipantFontName Impact
+ParticipantFontSize 15
+ParticipantFontColor black
+
+ActorBackgroundColor #8CCEF1
+ActorFontColor black
+ActorFontSize 15
+ActorFontName Aapex
+}
+
+
+actor "管理员 or nsq" as admin
+Participant "前端 or nsq" as front
+'Participant NsqClient as nsqClient
+Participant GuideTaskWriteService as guideTaskWriteService
+Participant GuideTaskValidator as guideTaskValidator
+Participant GuideTaskRightChecker as guideTaskRightChecker
+Participant GuideTaskDomainService as guideTaskDomainService
+Participant GuideTaskRepository as guideTaskRepository
+Participant NsqProducer as nsqProducer
+
+admin -> front : 审核任务
+note left
+    接收到任务创建新消息
+    一期任务自动审核
+    二期任务需要接收前端请求
+end note
+
+front -> guideTaskWriteService : 提交请求
+
+guideTaskWriteService -> guideTaskValidator : validate
+
+guideTaskWriteService -> guideTaskRightChecker : check right
+
+guideTaskWriteService -> guideTaskDomainService : 审核
+
+guideTaskDomainService -> guideTaskRepository : status flow，任务流转至 审核成功 or 失败
+
+guideTaskWriteService -> nsqProducer : 发送任务审核完成消息，准备任务下发/分配
+
+@enduml

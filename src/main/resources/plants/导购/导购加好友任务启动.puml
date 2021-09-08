@@ -1,0 +1,59 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+hide footbox
+skinparam backgroundColor #EEEBDC
+autoActivate on
+autonumber
+
+skinparam sequence {
+ArrowColor black
+ActorBorderColor black
+LifeLineBorderColor black
+LifeLineBackgroundColor #8CCEF1
+
+ParticipantBorderColor black
+ParticipantBackgroundColor #8CCEF1
+'ParticipantFontName Impact
+ParticipantFontSize 15
+ParticipantFontColor black
+
+ActorBackgroundColor #8CCEF1
+ActorFontColor black
+ActorFontSize 15
+ActorFontName Aapex
+}
+
+
+actor "任务开始 nsq 消息" as nsq
+'Participant NsqClient as nsqClient
+Participant GuideTaskStartListener as guideTaskStartListener
+Participant GuideTaskStartProcessor as guideTaskStartProcessor
+Participant GuideTaskStartDomainService as guideTaskStartDomainService
+Participant GuideTaskAddFriendsStartStrategy as guideTaskAddFriendsStartStrategy
+Participant GuideTaskRepository as guideTaskRepository
+Participant GuideTaskDataRepository as guideTaskDataRepository
+
+
+nsq -> guideTaskStartListener : 监听任务开始消息
+
+guideTaskStartListener -> guideTaskStartProcessor : 开始处理
+
+guideTaskStartProcessor -> guideTaskRepository : 查询任务
+
+guideTaskStartProcessor -> guideTaskStartDomainService : 开始任务
+
+guideTaskStartDomainService -> guideTaskAddFriendsStartStrategy : 构建任务
+
+guideTaskAddFriendsStartStrategy -> shoppingGuideReadApi : 根据部门查询导购
+
+guideTaskAddFriendsStartStrategy -> guideTaskAddFriendsStartStrategy : 分配任务
+
+guideTaskAddFriendsStartStrategy -> guideTaskDataRepository : 查询被分配到的任务
+
+group Transaction
+    guideTaskStartDomainService -> guideTaskDataRepository : 保存被分配的任务
+    guideTaskStartDomainService -> guideTaskRepository : status flow 任务状态流转至 已启动
+    guideTaskStartDomainService -> guideTaskDataRepository : 任务流转为执行中
+end group
+
+@enduml

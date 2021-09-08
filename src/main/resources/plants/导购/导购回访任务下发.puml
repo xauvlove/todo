@@ -1,0 +1,51 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+hide footbox
+skinparam backgroundColor #EEEBDC
+autoActivate on
+autonumber
+
+skinparam sequence {
+ArrowColor black
+ActorBorderColor black
+LifeLineBorderColor black
+LifeLineBackgroundColor #8CCEF1
+
+ParticipantBorderColor black
+ParticipantBackgroundColor #8CCEF1
+'ParticipantFontName Impact
+ParticipantFontSize 15
+ParticipantFontColor black
+
+ActorBackgroundColor #8CCEF1
+ActorFontColor black
+ActorFontSize 15
+ActorFontName Aapex
+}
+
+
+Participant GuideTaskAssignDomainService as guideTaskAssignDomainService
+Participant ShoppingGuideReadApi as shoppingGuideReadApi
+Participant GuideTaskAssignStrategy as guideTaskVisitAssignStrategy
+Participant GuideTaskAssignFactory as guideTaskAssignFactory
+Participant GuideTaskDataRepository as guideTaskDataRepository
+Participant GuideTaskAssignRepository as guideTaskAssignRepository
+Participant GuideTaskRepository as guideTaskRepository
+
+guideTaskAssignDomainService -> shoppingGuideReadApi : 查询下发对象
+
+guideTaskAssignDomainService -> guideTaskVisitAssignStrategy : 分配任务 assign2Department()
+
+guideTaskVisitAssignStrategy -> guideTaskAssignFactory : 创建分配的任务实体
+
+group Transaction
+    guideTaskAssignDomainService -> guideTaskDataRepository : 删除早前下发数据
+
+    guideTaskAssignDomainService -> guideTaskDataRepository : 保存
+    guideTaskAssignDomainService -> guideTaskAssignRepository : 保存分配状态 status flow 任务流转至 分配完成
+    guideTaskAssignDomainService -> guideTaskRepository : 保存分配状态 status flow 任务流转至 待启动
+end group
+
+
+
+@enduml

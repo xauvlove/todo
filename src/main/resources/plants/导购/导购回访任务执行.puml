@@ -1,0 +1,49 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+hide footbox
+skinparam backgroundColor #EEEBDC
+autoActivate on
+autonumber
+
+skinparam sequence {
+ArrowColor black
+ActorBorderColor black
+LifeLineBorderColor black
+LifeLineBackgroundColor #8CCEF1
+
+ParticipantBorderColor black
+ParticipantBackgroundColor #8CCEF1
+'ParticipantFontName Impact
+ParticipantFontSize 15
+ParticipantFontColor black
+
+ActorBackgroundColor #8CCEF1
+ActorFontColor black
+ActorFontSize 15
+ActorFontName Aapex
+}
+
+
+actor "nsq 消息" as nsq
+Participant GuideTaskVisitStateChangeListener as guideTaskVisitStateChangeListener
+Participant GuideTaskVisitStateChangeProcessor as guideTaskVisitStateChangeProcessor
+Participant GuideTaskVisitDomainService as guideTaskVisitDomainService
+Participant GuideTaskRepository as guideTaskRepository
+Participant GuideTaskDataRepository as guideTaskDataRepository
+Participant NsqProducer as nsqProducer
+
+nsq -> guideTaskVisitStateChangeListener : 监听回访状态变更消息
+
+guideTaskVisitStateChangeListener -> guideTaskVisitStateChangeProcessor : 开始处理
+
+guideTaskVisitStateChangeProcessor -> guideTaskVisitDomainService : 任务状态变更
+
+guideTaskVisitDomainService -> guideTaskDataRepository : 根据 missionId，external_user_id 查询任务明细
+
+group Transaction
+    guideTaskVisitDomainService -> guideTaskDataRepository : 更新回访结果
+end group
+
+guideTaskVisitDomainService -> nsqProducer : 发出消息，用于统计
+
+@enduml

@@ -1,0 +1,70 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+hide footbox
+skinparam backgroundColor #EEEBDC
+autoActivate on
+autonumber
+
+skinparam sequence {
+ArrowColor black
+ActorBorderColor black
+LifeLineBorderColor black
+LifeLineBackgroundColor #8CCEF1
+
+ParticipantBorderColor black
+ParticipantBackgroundColor #8CCEF1
+'ParticipantFontName Impact
+ParticipantFontSize 15
+ParticipantFontColor black
+
+ActorBackgroundColor #8CCEF1
+ActorFontColor black
+ActorFontSize 15
+ActorFontName Aapex
+}
+
+
+actor "任务开始 nsq 消息" as nsq
+'Participant NsqClient as nsqClient
+Participant GuideTaskStartListener as guideTaskStartListener
+Participant GuideTaskStartProcessor as guideTaskStartProcessor
+Participant GuideTaskStartDomainService as guideTaskStartDomainService
+Participant GuideTaskVisitStartStrategy as guideTaskVisitStartStrategy
+Participant ShoppingGuideReadApi as shoppingGuideReadApi
+Participant Scrm as scrm
+Participant GuideTaskRepository as guideTaskRepository
+Participant GuideTaskDataRepository as guideTaskDataRepository
+Participant Tsp as tsp
+
+
+nsq -> guideTaskStartListener : 监听任务开始消息
+
+guideTaskStartListener -> guideTaskStartProcessor : 开始处理
+
+guideTaskStartProcessor -> guideTaskRepository : 查询任务
+
+guideTaskStartProcessor -> guideTaskStartDomainService : 开始任务
+
+guideTaskStartDomainService -> guideTaskVisitStartStrategy : 构建任务
+
+guideTaskVisitStartStrategy -> shoppingGuideReadApi : 查询部门导购
+
+guideTaskVisitStartStrategy -> scrm : 根据导购查询符合的任务
+
+guideTaskVisitStartStrategy -> GuideRevisitCommandService : 向企微发送创建回访任务
+
+guideTaskVisitStartStrategy -> guideTaskDataRepository : 获取企微回传的 missionId 和 subMissionId
+
+guideTaskVisitStartStrategy -> tsp : 发送 tsp 任务，每 10[apollo 配置] 分钟检查一次回访结果
+note left
+    10 分钟查一次回访结果是为了兜底：
+    接收消息达上限
+end note
+
+group Transaction
+    guideTaskStartDomainService -> guideTaskDataRepository : 保存导购任务明细
+    guideTaskStartDomainService -> guideTaskRepository : status flow 任务状态流转至 已启动
+    guideTaskStartDomainService -> guideTaskDataRepository : 任务流转为执行中
+end group
+
+@enduml

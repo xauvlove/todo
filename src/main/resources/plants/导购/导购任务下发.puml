@@ -1,0 +1,70 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+hide footbox
+skinparam backgroundColor #EEEBDC
+autoActivate on
+autonumber
+
+skinparam sequence {
+ArrowColor black
+ActorBorderColor black
+LifeLineBorderColor black
+LifeLineBackgroundColor #8CCEF1
+
+ParticipantBorderColor black
+ParticipantBackgroundColor #8CCEF1
+'ParticipantFontName Impact
+ParticipantFontSize 15
+ParticipantFontColor black
+
+ActorBackgroundColor #8CCEF1
+ActorFontColor black
+ActorFontSize 15
+ActorFontName Aapex
+}
+
+
+actor "部门管理员 or nsq" as admin
+'Participant NsqClient as nsqClient
+Participant GuideTaskWriteService as guideTaskWriteService
+Participant GuideTaskValidator as guideTaskValidator
+Participant GuideTaskRightChecker as guideTaskRightChecker
+Participant GuideTaskAssignDomainService as guideTaskAssignDomainService
+Participant ShoppingGuideReadApi as shoppingGuideReadApi
+Participant GuideTaskDepartmentAssignStrategy as guideTaskDepartmentAssignStrategy
+Participant GuideTaskAssignFactory as guideTaskAssignFactory
+Participant GuideTaskAssignRepository as guideTaskAssignRepository
+Participant GuideTaskRepository as guideTaskRepository
+
+admin -> guideTaskWriteService : 下发任务
+
+guideTaskWriteService -> guideTaskValidator : validate
+
+guideTaskWriteService -> guideTaskRightChecker : right check
+
+guideTaskWriteService -> guideTaskAssignDomainService : 任务分配
+
+guideTaskAssignDomainService -> shoppingGuideReadApi : 查询下发对象 department
+note left
+    如果下发的是全部导购
+    则查出所有部门进行下发
+end note
+
+guideTaskAssignDomainService -> guideTaskDepartmentAssignStrategy : 分配任务
+
+guideTaskDepartmentAssignStrategy -> guideTaskAssignFactory : 创建分配的任务实体
+note left
+    只有任务下发给导购的时候
+    才创建导购的任务明细
+end note
+
+group Transaction
+    guideTaskAssignDomainService -> guideTaskAssignRepository : 删除早前下发数据
+
+    guideTaskAssignDomainService -> guideTaskAssignRepository : 保存分配状态 status flow 任务流转至 分配完成
+    guideTaskAssignDomainService -> guideTaskRepository : 保存分配状态 status flow 任务流转至 待启动
+end group
+
+
+
+@enduml

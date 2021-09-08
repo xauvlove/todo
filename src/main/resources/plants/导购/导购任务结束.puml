@@ -1,0 +1,51 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+hide footbox
+skinparam backgroundColor #EEEBDC
+autoActivate on
+autonumber
+
+skinparam sequence {
+ArrowColor black
+ActorBorderColor black
+LifeLineBorderColor black
+LifeLineBackgroundColor #8CCEF1
+
+ParticipantBorderColor black
+ParticipantBackgroundColor #8CCEF1
+'ParticipantFontName Impact
+ParticipantFontSize 15
+ParticipantFontColor black
+
+ActorBackgroundColor #8CCEF1
+ActorFontColor black
+ActorFontSize 15
+ActorFontName Aapex
+}
+
+
+actor "部门管理员" as admin
+'Participant NsqClient as nsqClient
+Participant GuideTaskWriteService as guideTaskWriteService
+Participant GuideTaskValidator as guideTaskValidator
+Participant GuideTaskRightChecker as guideTaskRightChecker
+Participant GuideTaskDomainService as guideTaskDomainService
+Participant GuideTaskDataRepository as guideTaskDataRepository
+Participant GuideTaskRepository as guideTaskRepository
+
+admin -> guideTaskWriteService : 下发任务
+
+guideTaskWriteService -> guideTaskValidator : validate
+
+guideTaskWriteService -> guideTaskRightChecker : right check
+
+guideTaskWriteService -> guideTaskDomainService : 结束任务
+
+group Transaction
+    guideTaskDomainService -> guideTaskDataRepository : 结束任务
+    guideTaskDomainService -> guideTaskRepository : status flow 任务流转至 已结束
+end group
+
+
+
+@enduml

@@ -1,0 +1,58 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+hide footbox
+skinparam backgroundColor #EEEBDC
+autoActivate on
+autonumber
+
+skinparam sequence {
+ArrowColor black
+ActorBorderColor black
+LifeLineBorderColor black
+LifeLineBackgroundColor #8CCEF1
+
+ParticipantBorderColor black
+ParticipantBackgroundColor #8CCEF1
+'ParticipantFontName Impact
+ParticipantFontSize 15
+ParticipantFontColor black
+
+ActorBackgroundColor #8CCEF1
+ActorFontColor black
+ActorFontSize 15
+ActorFontName Aapex
+}
+
+
+actor "任务开始 nsq 消息" as nsq
+'Participant NsqClient as nsqClient
+Participant GuideTaskStartListener as guideTaskStartListener
+Participant GuideTaskStartProcessor as guideTaskStartProcessor
+Participant GuideTaskStartDomainService as guideTaskStartDomainService
+Participant GuideTaskNewCustomerStartStrategy as guideTaskNewCustomerStartStrategy
+Participant GuideTaskRepository as guideTaskRepository
+Participant GuideTaskDataRepository as guideTaskDataRepository
+Participant Tsp as tsp
+
+nsq -> guideTaskStartListener : 监听任务开始消息
+
+guideTaskStartListener -> guideTaskStartProcessor : 开始执行
+
+guideTaskStartProcessor -> guideTaskStartDomainService : 开始任务
+
+guideTaskStartDomainService -> guideTaskNewCustomerStartStrategy :开始任务
+
+group Transaction
+    guideTaskNewCustomerStartStrategy -> guideTaskRepository : 查询任务 status flow 流转至 已启动
+end group
+
+guideTaskNewCustomerStartStrategy -> guideTaskDataRepository : 查询所有老客加好友任务
+note left
+    当任务创建的时候，会自动创建分配 商城老客加好友任务
+end note
+
+guideTaskNewCustomerStartStrategy -> tsp : 为每个老客加好友任务设置 30 天的有效期
+note left
+    不与上面流程构成事务
+end note
+@enduml
