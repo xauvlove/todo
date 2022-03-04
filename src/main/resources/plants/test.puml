@@ -1,6 +1,0 @@
-@startuml
-class ComponentA
-
-ComponentB -[hidden]> ComponentA
-ComponentA -[hidden]-> ComponentC
-@enduml
